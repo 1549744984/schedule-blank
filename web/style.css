@@ -1,0 +1,1276 @@
+:root {
+  --bg: #fbfbfa;
+  --panel: #ffffff;
+  --line: #d9d5cc;
+  --line-soft: #e4e0d7;
+  --text: #1c1c1a;
+  --muted: #8a8a84;
+  --accent: #2d5f8b;
+  --accent-soft: #e8f0f7;
+  --warn: #b4562f;
+  --today: #fff6e8;
+  /* 页面背景照片打底（H 方案）：同一张纸白上叠一层虚化的风景照。
+     强度就一个变量，4–6% 之间调；超过 8% 一定抢前景，别试。
+     三视图各一张、互不相同，切换时靠 index.html 里的 preload 预加载，不闪。 */
+  --bgphoto: .08;
+  /* 相邻月格底色（中性灰阶，不用彩色）；灰差调这一个值 */
+  --out-bg: #e8e9ec;
+  --radius: 10px;
+  /* ---- 事件四类配色（底色 / 左侧条成对出现，正文永远是 --ev-text）----
+     四类底色排成一档四级灰阶：明度 L* 92.7 / 89.7 / 86.7 / 83.8，
+     离白底 7.3–16.2，相邻级差 2.9 以上 —— 去色后仍能分出四类（2026-10-27 实测）。
+     颜色语言没变，只调了明度；色相仍靠左侧条区分。 */
+  --ev-text: #1d1c1a;
+  --ev-bg: #e3ebf4;        --ev-bar: #2d5f8b;        /* 普通  L* 92.7 */
+  --ev-bg-high: #e9cbbc;   --ev-bar-high: #b4562f;   /* 重点  L* 83.8 */
+  --ev-bg-allday: #d5e5e3; --ev-bar-allday: #2f6b6b; /* 整日  L* 89.7 */
+  --ev-bg-todo: #ceddd0;   --ev-bar-todo: #3f6b4a;   /* 待办  L* 86.7 */
+  --ev-sub: #565248;                                 /* 时间 / 地点这类次要信息：原来 #7b756b 太淡，小字看不清 */
+  --ev-month-text: #3a3833;
+  /* 周数徽章 + 整点分水岭线，仍用暖赭色，与上面四类区分 */
+  --c-week: #8a4f2a;
+  /* ---- 桌面字号层次；手机端在 @media 里各自覆盖，不吃这套 ----
+     2026-10-27 B 方案：先把「页面标题」这一档拉开（20pt → 22pt），其余不动。
+     档差原来普遍 1.5–2pt，阶梯太浅，就是「主次不分」的机制。
+     只在 min-width:721px 里生效——手机上 7 列月格本来就紧，字号跟着涨会直接溢出。 */
+  --fs-title: 20pt;
+  --fs-weekday: 12pt;
+  --fs-dnum: 12pt;
+  --fs-month-ev: 10pt;
+  --fs-ev-title: 13.5pt;
+  --fs-ev-time: 11.5pt;
+  --fs-side-head: 12pt;
+  --fs-body: 12pt;
+  /* 视图切换器：当前所在那一档的字号。13px 的 1.5 倍；要看 2 倍就改成 26px */
+  --vs-on: 20px;
+  font-synthesis: none;
+}
+/* 桌面端字号阶梯（2026-10-27 B 方案）：只把「页面标题」这一档拉开，其余不动。
+   手机不吃这套——7 列月格本来就紧，字号跟涨会溢出。 */
+@media (min-width: 721px) {
+  :root { --fs-title: 22pt; --fs-body: 12.5pt; --fs-month-ev: 11.5pt; }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121214;
+    --panel: #18181b;
+    --line: #3a3a40;
+    --line-soft: #2c2c31;
+    --text: #e8e8e4;
+    --muted: #7d7d78;
+    --accent: #7cb3e8;
+    --accent-soft: #1c2833;
+    --warn: #e08a63;
+    --today: #221d16;
+    /* 深色模式同样排一档四级灰阶：L* 16.8 / 20.0 / 22.7 / 25.9，级差 2.7 以上 */
+    --out-bg: #232427;
+    --ev-text: #e8e8e4;
+    --ev-bg: #202a39;        --ev-bar: #7cb3e8;        /* 普通 L* 16.8 */
+    --ev-bg-high: #4f3830;   --ev-bar-high: #e08a63;   /* 重点 L* 25.9 */
+    --ev-bg-allday: #243333; --ev-bar-allday: #63b3b3; /* 整日 L* 20.0 */
+    --ev-bg-todo: #2d3932;   --ev-bar-todo: #6fb37f;   /* 待办 L* 22.7 */
+    --ev-sub: #8f897e;
+    --ev-month-text: #d6d2c9;
+    --c-week: #d9955f;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: var(--fs-body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+input { font: inherit; color: inherit; }
+
+/* 便签页的照片只铺在「写便签」那一栏（他 2026-10-29：边框和顶框保持白色，照片别糊满） */
+.notes-editor-col { position: relative; }
+.notes-editor-col::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background: url("bg/bg-notes.jpg") center / cover no-repeat;
+  filter: blur(2px);
+  opacity: .34;
+}
+.notes-editor-col > * { position: relative; z-index: 1; }
+
+/* ---------------- 背景照片层 ----------------
+   照片压在纸白之上、所有内容之下：blur 6px + 降饱和 0.8，不透明度由 --bgphoto 控。
+   图源 Pexels（免费可商用），存 web/bg/，每张 ≤200KB。
+   要点：只用 4–6%，超了就抢前景；卡片留 12% 透明让照片的颗粒透一点，不然月视图
+   只剩几像素的缝，等于没铺。 */
+body::before {
+  content: "";
+  position: fixed; inset: -12px;
+  z-index: 0; pointer-events: none;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(2px) saturate(.95);
+  opacity: var(--bgphoto);
+}
+body[data-view="month"]::before {
+  background-image: url("bg/bg-month.jpg");
+  /* 月格盖在照片上，8% 透不出来；月视图单独提到 16%，其他视图仍是 8% */
+  opacity: .34;
+}
+body[data-view="week"]::before  { background-image: url("bg/bg-week.jpg"); opacity: .30; }
+body[data-view="day"]::before   { background-image: url("bg/bg-day.jpg"); opacity: .30; }
+body[data-view="notes"]::before { display: none; }  /* 便签页不铺全屏，照片只在写作区，见 .notes-editor-col */
+
+/* ---------------- 顶栏 ---------------- */
+.bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 18px; height: 46px; box-sizing: border-box;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  position: sticky; top: 0; z-index: 20;
+  flex: none;
+}
+.bar-left, .bar-right { display: flex; align-items: center; gap: 9px; min-width: 0; }
+/* 左侧吃掉全部剩余空间，右侧按内容固定宽度：这样标题文字长短不会推动右半条栏 */
+.bar-left { flex: 1 1 auto; }
+.bar-right { flex: none; }
+/* 隐藏按钮只做不可见，仍然占位：切到便签页时「‹ › 今天」不能把整条栏抽走 */
+.bar .ghost[hidden], .bar .icon[hidden] { visibility: hidden; pointer-events: none; display: inline-flex; }
+/* 左侧这些写死宽度：标题再长也只能自己省略，不许把 ‹ › 挤窄，否则标题整体左移 */
+.bar-left .brand, .bar-left .icon, .bar-left .ghost { flex: none; }
+.brand {
+  font-size: 12.5px; letter-spacing: .12em; color: var(--muted);
+  text-transform: uppercase; margin-right: 4px;
+}
+#title {
+  font-size: var(--fs-title); font-weight: 700; margin: 0 2px; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  /* 标题不截断：宽度按内容来，空间不够由 JS 缩字号，不加省略号 */
+  flex: 0 0 auto; overflow: visible; text-overflow: clip;
+  line-height: 1.35;
+}
+#title .t-sub {
+  margin-left: 7px; font-size: 9pt; font-weight: 400; color: var(--muted);
+}
+/* 日视图落在今天：标题旁一枚橙红小字，事件块一律不加边框 */
+#title .title-today {
+  /* 跟着标题缩放：桌面约 13px，手机上最小不低于 9px，不会盖过标题 */
+  margin-left: .4em; font-size: max(.5625rem, .5em); font-weight: 700;
+  color: #C2410C; letter-spacing: .06em; vertical-align: .12em;
+}
+/* 窗口窄时先收起纯信息性的文字，把宽度让给标题 */
+@media (max-width: 1360px) { .status { display: none; } }
+@media (max-width: 1240px) { .sync-info { display: none; } }
+.icon {
+  width: 28px; height: 28px; border-radius: 7px; color: var(--muted);
+  display: grid; place-items: center; font-size: 17px; line-height: 1;
+}
+.icon:hover { background: var(--accent-soft); color: var(--text); }
+.ghost {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 11px; border-radius: 7px; color: var(--muted);
+  border: 1px solid var(--line); font-size: 13px;
+  /* 顶栏吃紧时按钮不许被压扁（否则「今天」会竖排成一个字） */
+  flex: none; white-space: nowrap;
+}
+.ghost .ico { width: 14px; height: 14px; flex: none; }
+.ghost:hover { color: var(--text); border-color: var(--muted); }
+/* 「今天」已经就在眼前时点亮，点完看得出效果 */
+.ghost.on { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 700; }
+.switch { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
+.switch button {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 46px; padding: 5px 12px;
+  font-size: 13px; line-height: 1.25; color: var(--muted); font-weight: 500;
+  letter-spacing: 0; font-family: inherit;
+  box-sizing: border-box;
+}
+.switch button + button { border-left: 1px solid var(--line); }
+.switch button:hover { color: var(--text); background: var(--line-soft); }
+/* 选中态只改底色和字色：字号/字重/字距/内边距一律不动，
+   否则按钮宽度一变，整条顶栏就会左右挪。 */
+.switch button.on {
+  background: var(--text); color: var(--bg);
+  font-weight: 500; letter-spacing: 0; font-size: 13px; font-family: inherit;
+}
+.status {
+  font-size: 11.5px; color: var(--muted);
+  width: 96px; flex: none; text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sync-info {
+  width: 156px; flex: none; text-align: right;
+  color: var(--muted); font-size: 11px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+/* 版本徽章：让他一眼确认「眼前这份是最新版」。文字由 /api/ping 填，样式只管小和静 */
+.ver {
+  flex: none; font-size: 11px; line-height: 1.6;
+  color: var(--ev-sub); white-space: nowrap;
+  border: 1px solid var(--line-soft); border-radius: 5px;
+  padding: 0 5px; font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+/* 两端版本对不上时的小红点：不抢眼，但能看见 */
+.ver-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #C2410C; margin-left: 5px; vertical-align: middle;
+}
+/* 服务端与界面版本不一致时的细横幅：显式说出来，不许静默 */
+.ver-banner {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 5px 14px; font-size: 12px; line-height: 1.5;
+  background: #f6e3d8; color: #6b3418;
+  border-bottom: 1px solid #e2c3b1;
+  flex: none;
+}
+.ver-banner .ghost {
+  border: 1px solid currentColor; border-radius: 5px;
+  padding: 1px 8px; font-size: 12px; color: inherit;
+}
+/* display:flex 会盖掉 [hidden] 的 display:none，必须显式补一条，否则没问题的页面也顶一条空横幅 */
+.ver-banner[hidden] { display: none; }
+
+/* 月视图底部的导入指引：一行字，不抢戏，但找得到（第八轮 §1-D 的硬要求） */
+.import-hint {
+  margin: 2px 12px 18px;
+  font-size: 11.5px; line-height: 1.7; color: var(--ev-sub);
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px;
+}
+.import-hint code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11px; padding: 1px 5px; border-radius: 4px;
+  background: color-mix(in srgb, var(--line-soft) 55%, transparent);
+  color: var(--text);
+  white-space: nowrap;
+}
+@media (max-width: 720px) {
+  .import-hint { margin: 2px 8px 14px; font-size: .625rem; }
+  .import-hint code { font-size: .5625rem; white-space: normal; word-break: break-all; }
+}
+
+/* 搜索 */
+.searchbox { position: relative; }
+.searchbox input {
+  width: 168px; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 7px; padding: 5px 10px; font-size: 13px; outline: none;
+}
+.searchbox input:focus { border-color: var(--accent); background: var(--panel); }
+.results {
+  position: absolute; top: 34px; right: 0; width: 320px; max-height: 340px; overflow: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .16); z-index: 60; padding: 4px;
+}
+.results[hidden] { display: none; }
+.results .r { padding: 7px 9px; border-radius: 6px; cursor: pointer; }
+.results .r:hover { background: var(--accent-soft); }
+.results .r .rid { font-size: 13px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.results .r .rh {
+  font-size: 12px; color: var(--muted); margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.results .empty { padding: 12px; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+/* ---------------- 主体 ---------------- */
+/* 顶栏高度不再写死 51px：选中档放大后顶栏会变高，main 用 flex 吃掉剩下高度 */
+.https-help {
+  flex: none; position: relative;
+  margin: 6px 16px 0; border: 1px solid #C2410C; border-radius: 8px;
+  background: #FFF1E6; color: var(--text); font-size: 12px; overflow: hidden;
+}
+.https-help[hidden], .https-help[data-state="closed"] { display: none; }
+.https-help.ready { border-color: var(--accent); background: var(--accent-soft); }
+/* 收起时只留一行细条，周/日视图的可视高度要能变回来 */
+.https-help[data-state="collapsed"] { background: var(--panel); border-color: var(--line); }
+.https-summary {
+  display: flex; align-items: center; gap: 6px; width: 100%;
+  padding: 5px 34px 5px 11px; text-align: left;
+  font-size: 12px; color: var(--text);
+}
+.https-help[data-state="collapsed"] .https-summary { color: var(--muted); }
+.https-dot { width: 7px; height: 7px; border-radius: 50%; background: #B4562F; flex: none; }
+.https-help.ready .https-dot { background: #2F7D54; }
+/* 状态点颜色跟状态走，且一定有文字陪着（绿=已就绪 / 橙=未就绪 / 灰=离线） */
+.https-help[data-conn="ready"] .https-dot { background: #2F7D54; }
+.https-help[data-conn="pending"] .https-dot { background: #B4562F; }
+.https-help[data-conn="offline"] .https-dot { background: #7B756B; }
+.https-close {
+  position: absolute; right: 4px; top: 4px;
+  color: var(--muted); font-size: 15px; line-height: 1; padding: 2px 6px;
+}
+.https-close:hover { color: var(--text); }
+.https-body { display: flex; align-items: flex-start; gap: 12px; padding: 2px 12px 9px; }
+.https-help[data-state="collapsed"] .https-body { display: none; }
+.quark-tip {
+  flex: none; margin: 4px 16px 0; padding: 4px 10px;
+  border: 1px dashed var(--line); border-radius: 6px;
+  color: var(--muted); font-size: 11.5px; line-height: 1.5;
+}
+.quark-tip[hidden] { display: none; }
+.https-help-main {
+  flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 3px 10px; align-items: baseline;
+}
+.https-help-main strong { font-size: 12.5px; }
+#https-status { color: #B4562F; }
+.https-help.ready #https-status { color: var(--accent); }
+/* 三行连接状态：绿=通过，红=卡在这一步 */
+.conn-state {
+  width: 100%; margin: 2px 0 0; padding: 0; list-style: none;
+  display: flex; flex-direction: column; gap: 2px; line-height: 1.55;
+}
+.conn-state li { color: var(--muted); }
+.conn-state li b { color: var(--text); font-weight: 600; }
+.conn-state li.ok b { color: #2F7D54; }
+.conn-state li.bad b { color: #B4562F; }
+.conn-why { width: 100%; margin-top: 3px; color: var(--text); font-weight: 600; }
+.conn-help { width: 100%; margin-top: 2px; }
+.conn-help summary { color: var(--muted); cursor: pointer; font-size: 11.5px; }
+.conn-help ol { margin: 3px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.55; }
+.conn-target { width: 100%; color: var(--muted); }
+.conn-target code {
+  color: var(--text); font-size: 12px; padding: 1px 4px;
+  background: var(--bg); border-radius: 4px;
+}
+.https-actions { flex: none; display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.https-actions .ghost { justify-content: center; }
+.https-help ol { width: 100%; margin: 2px 0 0; padding-left: 18px; color: var(--muted); line-height: 1.55; }
+.https-help.ready ol { display: none; }
+.https-install {
+  flex: none; padding: 6px 10px; border: 1px solid currentColor; border-radius: 6px;
+  color: #B4562F; font-size: 12px; font-weight: 700;
+}
+.https-help.ready .https-install { display: none; }
+main {
+  flex: 1 1 auto; min-height: 0; padding: 0 0 40px;
+  /* 纵向滚动常驻，避免滚动条忽隐忽现把顶栏挤动 */
+  overflow-y: scroll; overflow-x: hidden;
+  scrollbar-gutter: stable;
+  /* 背景照片层在 body::before（z-index:0），内容抬到它上面 */
+  position: relative; z-index: 1;
+}
+.boot-note { padding: 40px; text-align: center; color: var(--muted); font-size: 12.5px; }
+
+/* 月视图 */
+.weekday-row {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 6px; padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel); position: sticky; top: 0; z-index: 10;
+}
+.weekday-row div {
+  padding: 10px 4px 9px; font-size: var(--fs-weekday); font-weight: 700;
+  color: var(--text); letter-spacing: .14em;
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", ui-serif, serif;
+}
+/* 日期之间靠「间隙 + 白卡 + 细边」分开，不靠一条条网格线 */
+.grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 124px;
+  gap: 6px; padding: 10px 12px 18px;
+}
+.cell {
+  /* 等高：一行就是一行高，不许被内容撑开（他 2026-10-29：框框大小要保持一样，塞不下就用省略号） */
+  min-height: 124px; height: 124px; padding: 8px 10px 26px;
+  overflow: hidden;
+  /* 2026-10-29 他说「想看到格子又不想挡背景，但看着怪、没有视觉中心」：
+     解法是让「有内容的天」和「空的天」不是一个白度 —— 有事的那天浮起来当主角，
+     空的天退后半步把背景让出来。格子边界靠 1px 描边给，不靠加深底色压背景。 */
+  background: color-mix(in srgb, var(--panel) var(--cell-a, 56%), transparent);
+  border: 1px solid var(--line-soft); border-radius: 8px;
+  position: relative; cursor: pointer; overflow: hidden;
+}
+.cell:has(.ev) {
+  --cell-a: 80%;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent);
+}
+/* 已经过去的日子：整体放轻，未来的日子保持最亮（他 2026-10-29） */
+.cell.past { --cell-a: 42%; }
+.cell.past:has(.ev) { --cell-a: 62%; }
+/* 「过去」的直觉是「存在感变弱」，光降背景明度不够——内容本身也退一点 */
+.cell.past .ev,
+.cell.past .dnum,
+.cell.past .ev-more { opacity: .76; }
+/* 今天优先：红框要盖过上面那条细边 */
+.cell.today { box-shadow: inset 0 0 0 4px #C2410C; }
+
+/* 上/下个月的日期格：靠「块面深浅」区分，不靠线。
+   2026-10-29 他要求「相邻两个月的格子应该用颜色进行区分」——这里只用中性灰阶，不用彩色，
+   否则会跟「重点/整日/待办」三种类型色打架（公约：不新增第五种颜色）。
+   深浅只有这一个变量，A/B 两档在这里换。 */
+.cell.out {
+  /* 非本月用「实底冷灰蓝」，本月用「半透白」——一个实一个透，比深浅差更好认 */
+  background: var(--out-bg);
+  border-style: dashed; border-color: color-mix(in srgb, var(--line) 55%, transparent);
+}
+.cell.out .dnum { color: var(--muted); opacity: .8; }
+/* 今日：只给橙红框 + 日期数字着色，格子底色和其他天完全一样（不再铺暖底）。
+   2026-10-27：框改用 inset 阴影画，**不再动 border 宽度**——
+   之前把 border 提到 4px，格子的内容宽度被吃掉 6px，正好把月格挤到容器查询的
+   168px 阈值以下，那一天的时间就整行消失了（他当场指出「有的日程时间丢失」）。
+   阴影不占布局，视觉上还是 4px 的框，比「重点」的 3px 左条重一档。 */
+.cell.today {
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  border: 1px solid var(--line-soft);
+  box-shadow: inset 0 0 0 4px #C2410C;
+  /* 红框画在格子内侧，会把事件那条 2px 蓝竖条压掉一半（他 2026-10-29 指出的）。
+     所以内边距往外让 4px，内容和色条都退到框里侧。 */
+  padding-left: 14px; padding-top: 12px; height: 124px;
+}
+.cell:hover { border-color: var(--muted); }
+.cell.today:hover { border-color: #C2410C; }
+.cell-head { display: flex; align-items: center; justify-content: space-between; height: 20px; }
+.dnum { font-size: 15px; font-weight: 700; color: #14130f; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.cell.today .dnum { color: #C2410C; font-weight: 700; }
+.cell-flags { display: inline-flex; align-items: center; gap: 4px; }
+.today-mark { color: #C2410C; font-size: 10px; font-style: normal; font-weight: 700; letter-spacing: .04em; }
+/* 周数做成一枚斜体衬线徽章，用暖赭色，和三档日程色分开 */
+.wnum {
+  white-space: nowrap; flex: none;
+  font-size: 10.5px; font-weight: 700; font-style: italic;
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", ui-serif, serif;
+  color: var(--c-week); border: 1px solid currentColor; border-radius: 4px;
+  padding: 0 5px; line-height: 15px; letter-spacing: .02em;
+}
+.wnum:hover { color: var(--bg); background: var(--c-week); }
+/* 格内日程：一条一行，2px 类型色条 + 深墨字；不用浅灰小字，不放大也读得出来。
+   2026-10-27：**撤掉给普通条目铺底的改动**（他看了截图说「改前更好看一点」——
+   整片底色一铺，一屏十几格全是色块，反而糊成一团）。现在回到「只有重点才有底」，
+   「太素」这件事交给页面背景那层照片去打底，不再靠加深日程块。
+   同时时间数字加粗加大一档：他两次提到「时间的数字不够清楚」。 */
+.ev {
+  display: flex; gap: 5px; align-items: baseline;
+  font-size: var(--fs-month-ev); line-height: 1.32;
+  margin-top: 1px; padding: 0 0 0 6px;
+  border-left: 2px solid var(--ev-bar);
+  color: var(--ev-month-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ev[data-type=high] {
+  border-left-width: 3px; border-radius: 3px; background: var(--ev-bg-high);
+}
+.ev[data-type=high] { border-left-color: var(--ev-bar-high); background: var(--ev-bg-high); border-radius: 3px; }
+.ev[data-type=allday] { border-left-color: var(--ev-bar-allday); }
+.ev.high .t { font-weight: 700; }
+.ev .loc {
+  flex: 0 1 auto; min-width: 0;
+  font-size: 10pt; line-height: 1.2; color: var(--ev-sub); letter-spacing: .02em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ev time {
+  color: var(--ev-sub); font-variant-numeric: tabular-nums;
+  font-size: 10.5pt; font-weight: 600; flex: none;
+}
+.ev .t { overflow: hidden; text-overflow: ellipsis; }
+/* 同一天超过 3 条：第 4 行换成 +N，不再挤成一团 */
+.ev-more {
+  /* 贴底：月格等高 116px，内容一多第 3 行会被 overflow 裁掉，
+     … 必须绝对定位在底部才保证看得见（他 2026-10-29 要的「平行三点省略号」） */
+  position: absolute; left: 8px; right: 8px; bottom: 3px;
+  font-size: 18pt; font-weight: 800; color: var(--text);
+  line-height: 1; text-align: center; letter-spacing: .3em; padding-left: .3em;
+}
+/* 月格太窄时按顺序让位：先地点，再缩字号，**时间一律不许消失**。
+   地点本来就只承诺在周/日视图可见（见 00_格式说明.md 字段表）。
+   2026-10-27 改：原来 ≤168px 直接 `display:none` 把时间整行去掉，
+   结果那天格子的时间全丢（他当场发现）。现在只缩不加粗，永远留一行。
+   ⚠ 只在桌面开容器查询：给 .cell 加 inline-size 会顺带收掉它的 min-content，
+   手机 7 列会因此变窄、日期徽章被迫换行（实测过）。手机端保持原样。 */
+@media (min-width: 721px) {
+  .cell { container-type: inline-size; }
+}
+@container (max-width: 210px) {
+  /* 2026-10-29：这里原来直接 display:none 把地点整条藏掉——1440 宽的月格只有 195px，
+     等于地点永远看不见（他输入了地址却不显示，就是这条）。改成「缩不让位」：
+     地点留在同一条，最多占 45%，放不下就省略号，标题让位。 */
+  .ev .loc { max-width: 45%; }
+}
+/* 地址「版一：第二行」——只在桌面生效（手机月格 40 多像素宽，放不下第二行） */
+/* 2026-10-29 他的决定：月页面不显示地点，一条只占一行，这样一格能放三条。
+   地点没丢：周视图、日视图照常显示，点开当天详情也看得到。 */
+.ev .loc { display: none; }
+@container (max-width: 168px) {
+  .ev time { font-size: 8.5pt; font-weight: 600; }
+}
+/* 「这天还有没做完的事」不再画三颗小圆点（他说太不显眼），
+   改成右上角一块红色折角——像纸折了一下，远看就有，又不占正文位置。 */
+.dots {
+  /* 右上角折角：用渐变画三角，不用 border 三角——border 三角会让直角跑到格子外面去 */
+  position: absolute; top: 0; right: 0;
+  width: 26px; height: 26px;
+  background: linear-gradient(225deg, #C2410C 0 50%, transparent 50%);
+  border-top-right-radius: 8px;
+  opacity: .95;
+}
+.dots .dot { display: none; }
+
+/* 计划横条：标签是「本月目标 / 关键节点」这类关键信息，不用灰字，加粗加大 */
+.goals {
+  display: flex; flex-wrap: wrap; gap: 5px 20px; align-items: center;
+  padding: 9px 18px; border-bottom: 1px solid var(--line-soft);
+  background: var(--panel); font-size: 14px;
+}
+.goals .k {
+  color: var(--text); font-size: 12.5px; font-weight: 700;
+  letter-spacing: .1em; flex: none;
+}
+.goals .g { display: inline-flex; gap: 2px; align-items: center; }
+.goals .grp { display: flex; flex-wrap: wrap; gap: 5px 12px; align-items: center; }
+/* 目标行：文字直接可改，勾选 / 删除 / 跳转都是小按钮 */
+.goals .g-text {
+  min-width: 3em; padding: 1px 4px; border-radius: 4px; outline: none; cursor: text;
+}
+.goals .g-text:hover { background: var(--line-soft); }
+.goals .g-text:focus { background: var(--bg); box-shadow: 0 0 0 1px var(--accent); }
+.goals .g.done .g-text { color: var(--muted); text-decoration: line-through; }
+.goals .g-done, .goals .g-del, .goals .g-jump, .goals .g-add {
+  color: var(--muted); font-size: 11px; line-height: 1; padding: 2px 3px;
+  border-radius: 4px;
+}
+.goals .g-done:hover, .goals .g-add:hover, .goals .g-jump:hover { color: var(--text); }
+.goals .g-del:hover { color: var(--warn); }
+.goals .g-del, .goals .g-jump { opacity: 0; }
+.goals .g:hover .g-del, .goals .g:hover .g-jump, .goals .g:focus-within .g-del, .goals .g:focus-within .g-jump { opacity: 1; }
+.goals .g-add { border: 1px dashed var(--line); padding: 2px 6px; }
+.m-goal-list > .goals { border: 0; padding: .25rem 0 .5rem; }
+
+/* 周 / 日 视图 */
+.week-scroll { overflow: auto; }
+.week-grid {
+  display: grid; grid-template-columns: 58px repeat(7, minmax(110px, 1fr));
+  min-width: 820px; position: relative;
+}
+.wcol-head {
+  position: sticky; top: 0; z-index: 6; background: var(--panel);
+  border-bottom: 1px solid var(--line); border-left: 1px solid var(--line);
+  padding: 7px 9px; font-size: 12px; color: var(--text);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.wcol-head.today { box-shadow: inset 0 -3px 0 #C2410C; }
+/* 「周X」用无衬线小字，日期数字用衬线大字：两种字体分工，不再糊成一片 */
+.wcol-head .wd { color: var(--text); font-size: var(--fs-weekday); font-weight: 700; letter-spacing: .08em; }
+.wcol-head b {
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", ui-serif, serif;
+  font-size: 20px; font-weight: 700; color: var(--text); line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wcol-head.today .wd, .wcol-head.today b { color: #C2410C; font-weight: 700; }
+/* 列头下的整日事项独立行：与时间轴分开，任何事项都不会压住 07:00 刻度 */
+.allday-corner, .allday-cell {
+  min-height: 28px; background: var(--panel);
+  border-bottom: 1px solid var(--line); border-left: 1px solid var(--line);
+}
+.allday-corner {
+  border-left: 0; padding: 5px 8px 4px; color: var(--muted);
+  font-size: 10.5px; text-align: right;
+}
+.allday-cell {
+  padding: 3px 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.allday-cell .aday { margin: 0; }
+/* 事件块左边会越过时间轴 9px；时间列提到上面且数字往里让，
+   越界部分只压到留白，不会盖住数字 */
+.time-col {
+  position: relative; z-index: 4;
+  /* 时间轴单独压一层近白底，把背景照片挡在轴后面：他 2026-10-29 要求
+     「时间轴和字单独做一个清晰度，让它独立清晰」，整体照片照旧。 */
+  background-color: color-mix(in srgb, var(--bg) 93%, transparent);
+  box-shadow: 1px 0 0 color-mix(in srgb, var(--line) 70%, transparent);
+}
+/* 每小时一道短刻线，只画在轴侧 5px 内，不横贯整个日列 —— 他说的「小时间标志」。
+   数字本身也加粗一档、颜色从灰提到 --text 的 70%，站在轴上就能读出几点。 */
+.time-col {
+  /* 每小时一道 2px 短刻线，只占轴侧 6px，不横贯日列 */
+  background-image: repeating-linear-gradient(to bottom, #c9c4ba 0 2px, transparent 2px var(--hour, 60px));
+  background-repeat: no-repeat;
+  background-size: 6px 100%;
+  background-position: right 0 top 0;
+}
+.time-col div {
+  height: calc(var(--hour, 60px) * 2); font-size: 12.5px; color: var(--text); text-align: right;
+  padding-right: 12px; transform: translateY(-7px); font-variant-numeric: tabular-nums;
+  font-weight: 700; letter-spacing: .01em;
+}
+.time-col div:first-child { transform: none; }
+/* 早八 / 中午 / 晚六：一天的三道分水岭，字要重 */
+.time-col div.hot { color: var(--text); font-weight: 700; font-size: 12px; }
+.day-col {
+  position: relative; border-left: 1px solid var(--line);
+  /* 两层刻度：每 2 小时一条深线（主格），每小时一条淡线（半格）；格高由 --hour 决定（JS 同步 PX） */
+  background-image:
+    repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px calc(var(--hour, 60px) * 2)),
+    repeating-linear-gradient(to bottom, var(--line-soft) 0 1px, transparent 1px var(--hour, 60px));
+  cursor: crosshair;
+}
+/* 8:00 / 12:00 / 18:00 三条强线，把一天切成早/午/晚 */
+.hbar {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: var(--c-week); opacity: .38; pointer-events: none; z-index: 1;
+}
+/* 周 / 日视图的「今天」只落在列头上（见 .wcol-head.today），
+   整列不再铺暖底、不再加橙红描边——那个橙红要留给「重点」 */
+.evblock {
+  position: absolute; left: 3px; right: 3px; border-radius: 6px;
+  padding: 4px 8px 4px 9px; font-size: var(--fs-ev-title); line-height: 1.35;
+  /* 2026-10-29：块压在背景照片上会「糊」在一起，所以底色改成「纸白 + 一点类型色」，
+     比原来的浅色更实一档，再补一圈同色的内描边 + 一点落影，跟空白背景拉开。 */
+  background: color-mix(in srgb, var(--panel) 90%, var(--ev-bar));
+  color: var(--ev-text);
+  /* 底边留 2px 纸色当缝：块高保持「分钟 × 每分钟像素」的精确值 */
+  border: 0; border-left: 4px solid var(--ev-bar); border-bottom: 2px solid var(--bg);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ev-bar) 45%, transparent),
+              0 1px 3px rgba(28, 32, 38, .10);
+  overflow: hidden; cursor: pointer; z-index: 3;
+}
+.evblock:hover { filter: brightness(.96); outline: 1px solid var(--accent); }
+/* 长跨度事件按「区间」画：整宽淡底、垫在其他块下面，避免它把当天所有块挤成半宽 */
+.evblock.band {
+  z-index: 0; opacity: .5;
+  border-left-width: 2px; border-bottom: 0;
+  pointer-events: auto;
+}
+.evblock.band:hover { opacity: .8; }
+.evblock.high {
+  background: color-mix(in srgb, var(--panel) 88%, var(--ev-bar-high));
+  border-left: 4px solid var(--ev-bar-high); padding-right: 30px;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ev-bar-high) 55%, transparent),
+              0 1px 3px rgba(90, 40, 20, .16);
+}
+.evblock.high .et { font-weight: 700; }
+.evblock.high::after {
+  content: "重点"; position: absolute; top: 2px; right: 5px;
+  color: var(--ev-text); font-size: 9px; line-height: 1; font-weight: 700; opacity: .72;
+}
+.evblock .et {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; word-break: break-word;
+}
+/* 时间与地点同属次要信息：统一 --ev-sub，字号比标题小一档。
+   窄列时**只让地点让位**，时间一律完整显示——原来两者挤一行，会截成「14:00-16:」。 */
+.evblock .eh {
+  display: flex; gap: 4px; align-items: baseline; min-width: 0;
+  color: var(--ev-sub); font-size: var(--fs-ev-time); font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden;
+}
+.evblock .eh .tt {
+  flex: none; color: var(--ev-sub); font-weight: 600;
+  font-size: var(--fs-ev-time); letter-spacing: .01em;
+}
+.evblock .eh .tloc {
+  flex: 0 1 auto; min-width: 0;
+  color: var(--ev-sub); font-size: var(--fs-ev-time); font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.evblock .et-loc { display: none; color: var(--ev-sub); font-size: var(--fs-ev-time); font-weight: 400; }
+/* 短日程（不到 34px 高）：时间挪到标题左边，一行放完，不再压成两行看不清 */
+.evblock.tight { display: flex; align-items: center; gap: 7px; padding: 1px 7px 1px 8px; }
+.evblock.tight .eh { order: -1; flex: none; }
+.evblock.tight .et { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 分栏后宽度有限：地点和短块时间让位给标题，完整信息点进弹窗看 */
+.evblock[data-lanes]:not([data-lanes="1"]) { padding-right: 4px; }
+.evblock[data-lanes]:not([data-lanes="1"]) .tloc { display: none; }
+.evblock[data-lanes]:not([data-lanes="1"]) .tt { font-size: calc(var(--fs-ev-time) - 1pt); }
+/* 整日事项：铺 --ev-bg-allday 底色 + 3px 左条，和普通日程同一个语言 */
+.aday {
+  margin: 1px 3px; padding: 1px 6px; border-radius: 3px;
+  border-left: 3px solid var(--ev-bar-allday);
+  background: var(--ev-bg-allday);
+  font-size: 10.5pt; line-height: 1.35; color: var(--ev-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+}
+.aday:hover { filter: brightness(.97); }
+.aday.high {
+  background: var(--ev-bg-high); border-left: 4px solid var(--ev-bar-high); font-weight: 700;
+}
+
+/* 日视图 */
+.day-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 0; }
+.day-main { position: relative; border-right: 1px solid var(--line); }
+.day-side { padding: 16px 18px; font-size: var(--fs-body); }
+.day-side h3 {
+  font-size: var(--fs-side-head); letter-spacing: .1em; color: var(--text); font-weight: 700;
+  margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+}
+.side-sec { margin-bottom: 24px; }
+.side-drawer > summary {
+  font-size: var(--fs-side-head); letter-spacing: .1em; color: var(--text); font-weight: 700;
+  margin: 0 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+  cursor: pointer; list-style-position: inside;
+}
+.side-drawer > .side-body { padding-top: 1px; }
+/* 待办：铺 --ev-bg-todo 底色 + 3px 左条，重点待办换重点色 */
+.todo {
+  display: flex; gap: 9px; align-items: flex-start; cursor: pointer;
+  padding: 5px 8px; margin-bottom: 3px; border-radius: 3px;
+  background: var(--ev-bg-todo); border-left: 3px solid var(--ev-bar-todo);
+}
+.todo .txt { flex: 1; min-width: 0; }
+.todo.high { background: var(--ev-bg-high); border-left-color: var(--ev-bar-high); }
+.todo.high .txt { font-weight: 700; }
+.todo-priority {
+  flex: none; padding: 1px 5px; border: 1px solid var(--line); border-radius: 4px;
+  color: var(--muted); font-size: 10px; line-height: 1.5;
+}
+.todo-priority[aria-pressed="true"] { color: var(--warn); border-color: currentColor; font-weight: 700; }
+.todo .box {
+  width: 14px; height: 14px; border: 1px solid var(--muted); border-radius: 4px;
+  flex: none; margin-top: 3px; display: grid; place-items: center; font-size: 10px;
+}
+.todo.done .box { background: var(--accent); border-color: var(--accent); color: #fff; }
+.todo.done .txt { color: var(--muted); text-decoration: line-through; }
+.side-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
+/* 本周重点 / 本月目标：不打勾，点一下跳转（带 @日期 就跳到那天） */
+.goal-link {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 5px 0; cursor: pointer; border-bottom: 1px solid var(--line-soft);
+}
+.goal-link .txt { font-size: 13.5px; color: var(--text); }
+.goal-link .go { flex: none; color: var(--muted); font-size: 13px; }
+.goal-link:hover .txt { text-decoration: underline; text-underline-offset: 3px; }
+.goal-link:hover .go { color: var(--text); }
+.add-btn {
+  margin-top: 10px; padding: 6px 10px; width: 100%;
+  border: 1px dashed var(--line); border-radius: 7px;
+  color: var(--muted); font-size: 12.5px; text-align: center;
+}
+.add-btn:hover { color: var(--text); border-color: var(--muted); border-style: solid; }
+.todo-new {
+  width: 100%; height: 32px; box-sizing: border-box; margin-top: 5px; padding: 0 8px;
+  background: var(--bg); border: 1px solid var(--accent); border-radius: 6px;
+  font-size: 13px; outline: none;
+}
+/* 待办列表常驻滚动槽：新增输入框出现时高度与宽度都不跳 */
+.todo-list {
+  overflow-y: scroll; scrollbar-gutter: stable; max-height: 40vh;
+}
+.note-preview {
+  max-height: 120px; overflow: auto; white-space: normal;
+  color: var(--text); font-size: 12.5px; line-height: 1.6;
+}
+.note-area {
+  width: 100%; min-height: 200px; resize: vertical; box-sizing: border-box;
+  padding: 10px 12px; background: var(--bg); color: var(--text);
+  border: 1px solid var(--line); border-radius: 7px; outline: none;
+  font: inherit; line-height: 1.65;
+}
+.note-area:focus { border-color: var(--accent); }
+/* 便签：分区 / 列表 / 编辑三栏，直接编辑不弹窗 */
+main[data-view="notes"] { padding: 0; overflow: hidden; }
+.notes-page {
+  height: 100%; min-height: 0; display: grid;
+  grid-template-columns: 180px 240px minmax(0, 1fr);
+  background: var(--bg);
+}
+.notes-filters {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  padding: 14px 10px; background: var(--panel); border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.notes-brand {
+  font-family: "Microsoft YaHei UI", ui-sans-serif, sans-serif;
+  font-size: 17.3px; font-weight: 700; letter-spacing: .04em;
+  padding: 2px 8px 10px; color: #1D1C1A;
+}
+.note-filter {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; padding: 7px 9px; border-radius: 6px;
+  color: var(--muted); font-size: 12.5px; text-align: left;
+}
+.note-filter:hover { background: var(--line-soft); color: var(--text); }
+.note-filter.on { background: var(--text); color: var(--bg); }
+.note-filter .cnt { font-size: 10.5px; opacity: .72; }
+/* 文件夹树：对齐 Obsidian 的文件树，缩进按层级 */
+.note-tree-head {
+  margin: 8px 0 2px; padding: 0 8px; color: var(--muted);
+  font-size: 10.5px; letter-spacing: .08em;
+}
+.note-sort {
+  width: 100%; text-align: left; padding: 5px 8px; margin-top: 2px;
+  color: var(--muted); font-size: 11px; border-radius: 6px;
+  border: 1px dashed var(--line);
+}
+.note-sort:hover { color: var(--text); }
+.note-folder {
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px;
+  border-radius: 6px; color: var(--muted); font-size: 12.5px; cursor: pointer;
+}
+.note-folder:hover { background: var(--line-soft); color: var(--text); }
+.note-folder.on { background: var(--text); color: var(--bg); }
+.note-folder .fname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-folder .cnt { font-size: 10.5px; opacity: .72; }
+.note-folder .fops { display: none; gap: 2px; }
+.note-folder:hover .fops { display: inline-flex; }
+.note-folder .fops button { color: inherit; opacity: .6; font-size: 11px; padding: 0 2px; }
+.note-folder .fops button:hover { opacity: 1; }
+.note-tree-empty { padding: 4px 8px 2px; color: var(--muted); font-size: 11px; }
+.note-folder-new {
+  text-align: left; padding: 7px 9px; margin-top: 4px;
+  color: var(--muted); font-size: 12px; border-radius: 6px;
+}
+.note-folder-new:hover { background: var(--line-soft); color: var(--text); }
+.notes-legacy {
+  margin-top: 8px; padding: 6px 8px; border: 1px dashed var(--line);
+  border-radius: 6px; color: var(--muted); font-size: 10.5px; line-height: 1.5;
+}
+.notes-legacy.warn { color: var(--warn); border-color: currentColor; }
+/* 手机把同一时段多条日程收进这里：任意时段点 +N 弹出全部 */
+.period-pop {
+  position: fixed; z-index: 120; left: 50%; transform: translateX(-50%);
+  bottom: 1rem; width: min(92vw, 420px); max-height: 60vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .28); padding: 8px 10px;
+}
+.period-pop[hidden] { display: none; }
+.pop-backdrop {
+  position: fixed; inset: 0; z-index: 119; background: rgba(18, 16, 14, .12);
+}
+.pop-backdrop[hidden] { display: none; }
+.pop-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; font-size: 12px; color: var(--muted);
+  padding-bottom: 6px; border-bottom: 1px solid var(--line-soft);
+}
+.pop-close { color: var(--muted); font-size: 16px; line-height: 1; padding: 0 4px; }
+.pop-ev {
+  display: flex; gap: 8px; align-items: baseline; width: 100%;
+  text-align: left; padding: 8px 2px; border-bottom: 1px solid var(--line-soft);
+}
+.pop-time { flex: none; color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pop-title {
+  flex: 1; min-width: 0; color: var(--text); font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pop-loc { flex: none; color: var(--muted); font-size: 11px; }
+.note-new { width: 100%; margin-top: auto; text-align: center; }
+.notes-list-col {
+  display: flex; flex-direction: column; min-height: 0; min-width: 0;
+  background: var(--panel); border-right: 1px solid var(--line);
+}
+.notes-search {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 9px; border-bottom: 1px solid var(--line-soft);
+}
+.notes-search input {
+  flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid var(--line);
+  border-radius: 6px; background: var(--bg); color: var(--text);
+  font-size: 12px; outline: none;
+}
+.notes-search input:focus { border-color: var(--accent); }
+.notes-count { flex: none; color: var(--muted); font-size: 10px; }
+.notes-list-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.note-item {
+  width: 100%; min-height: 44px; display: flex; flex-direction: column; gap: 3px;
+  padding: 9px 11px; text-align: left; color: var(--text); cursor: pointer;
+  touch-action: manipulation; margin: 0;
+  border-bottom: 1px solid var(--line-soft); border-left: 2px solid transparent;
+}
+.note-item:hover { background: var(--line-soft); }
+.note-item.on { background: var(--accent-soft); border-left-color: var(--accent); }
+.note-item-title {
+  font-size: 12.5px; font-weight: 600; overflow: hidden;
+  white-space: nowrap; text-overflow: ellipsis;
+}
+.note-item-time { color: var(--muted); font-size: 10px; }
+.notes-editor-col {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--bg);
+}
+.notes-editor-head {
+  flex: none; display: flex; align-items: center; gap: 10px;
+  min-height: 44px; padding: 6px 16px; border-bottom: 1px solid var(--line-soft);
+}
+.notes-updated { flex: 1; min-width: 0; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-pin, .note-delete {
+  flex: none; padding: 3px 8px; border: 1px solid var(--line); border-radius: 5px;
+  color: var(--muted); font-size: 11px;
+}
+.note-pin.on { color: var(--warn); border-color: currentColor; font-weight: 700; }
+.note-delete { color: var(--warn); }
+.note-move {
+  flex: none; max-width: 130px; padding: 3px 4px;
+  border: 1px solid var(--line); border-radius: 5px;
+  background: transparent; color: var(--muted); font-size: 11px;
+}
+.notes-title {
+  flex: none; margin: 10px 22px 0; padding: 3px 0 6px;
+  background: transparent; color: var(--text); border: 0; border-bottom: 1px solid var(--line-soft);
+  outline: none; font: 700 14px/1.4 "Microsoft YaHei UI", ui-sans-serif, sans-serif;
+}
+.notes-title::placeholder { color: var(--muted); font-weight: 400; }
+.notes-editor {
+  flex: 1; width: 100%; min-height: 0; resize: none; box-sizing: border-box;
+  /* 写作区要透出背景照片：原来这里是不透明的 --bg，把 .notes-editor-col::before 整层盖掉了
+     （他 2026-10-29「便签页背景还没加进去」就是这个）。留 78% 纸白，字照样清楚。 */
+  padding: 18px 22px; color: var(--text);
+  background: color-mix(in srgb, var(--bg) 64%, transparent);
+  border: 0; outline: none; font: 15px/1.75 "Microsoft YaHei UI", ui-sans-serif, sans-serif;
+}
+.notes-editor-foot {
+  flex: none; display: flex; justify-content: space-between; gap: 12px;
+  padding: 7px 16px; border-top: 1px solid var(--line-soft);
+  color: var(--muted); font-size: 10.5px;
+}
+.notes-editor-empty { margin: auto; color: var(--muted); font-size: 13px; }
+.notes-mobile-head { display: none; }
+.notes-empty { padding: 30px 10px; text-align: center; color: var(--muted); font-size: 12px; }
+#btn-sticker.on { color: var(--accent); border-color: currentColor; }
+.ghost[hidden], .icon[hidden] { display: none; }
+
+/* 弹窗 */
+.modal {
+  position: fixed; inset: 0; background: rgba(18, 16, 14, .18);
+  backdrop-filter: blur(3px) saturate(.9);
+  -webkit-backdrop-filter: blur(3px) saturate(.9);
+  display: grid; place-items: center; z-index: 100; padding: 20px;
+}
+.modal[hidden] { display: none; }
+.modal-box {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  width: min(440px, 100%); padding: 16px 20px 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .34), 0 4px 14px rgba(0, 0, 0, .16);
+}
+.modal-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 15px; font-weight: 700; margin-bottom: 14px;
+  padding-bottom: 11px; border-bottom: 1px solid var(--line);
+}
+.row { display: grid; grid-template-columns: 54px 1fr; gap: 10px; align-items: center; margin-bottom: 9px; }
+.row > span { font-size: 13px; color: var(--muted); }
+.row input:not([type=checkbox]) {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 7px;
+  padding: 7px 10px; width: 100%; outline: none; font-size: 14px;
+}
+.row input:focus { border-color: var(--accent); }
+.row input:disabled { opacity: .5; cursor: not-allowed; }
+.form-error {
+  margin: -2px 0 9px 64px; color: var(--warn);
+  font-size: 12px; line-height: 1.45;
+}
+.form-error[hidden] { display: none; }
+.row.check { grid-template-columns: 54px 1fr; }
+.row.check input { justify-self: start; width: 15px; height: 15px; accent-color: var(--accent); }
+.modal-foot { display: flex; gap: 8px; align-items: center; margin-top: 16px; }
+.spacer { flex: 1; }
+.primary {
+  background: var(--accent); color: #fff; padding: 7px 18px; border-radius: 7px; font-size: 13px;
+}
+.primary.wide { width: 100%; padding: 9px 12px; font-size: 13.5px; letter-spacing: .02em; }
+.danger { color: var(--warn); font-size: 13px; padding: 6px 4px; }
+.danger:hover { text-decoration: underline; }
+.danger[hidden] { display: none; }
+.hint { font-size: 12px; color: var(--muted); margin: 0 0 4px; line-height: 1.6; }
+.url {
+  font-size: 19px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  padding: 8px 0 12px; word-break: break-all; letter-spacing: .01em;
+}
+
+.mobile-week-tools { display: none; }
+
+/* 899 及以下 = 文档定义的「手机端」边界。桌面字号放大后，一行放不下 20pt 标题 + 一排按钮，
+   提前让顶栏换行，免得标题压住视图切换。字号一个都不动。 */
+@media (max-width: 899px) {
+  .bar { flex-wrap: wrap; height: auto; min-height: 46px; padding: 6px 10px; gap: 4px 8px; align-content: center; }
+  .bar-left, .bar-right { width: 100%; justify-content: space-between; }
+  /* 标题和 ‹ › 挨在一起，别被 space-between 撑到屏幕两端 */
+  .bar-left { justify-content: flex-start; }
+  .bar-right { flex-wrap: wrap; gap: 4px 6px; }
+  .brand { display: none; }
+}
+
+@media (max-width: 720px) {
+  body { max-width: 100vw; font-size: clamp(.8125rem, .78rem + .2vw, .9375rem); }
+  .bar {
+    padding: .5rem .625rem; flex-wrap: wrap; gap: .375rem;
+    height: auto; min-height: 46px; align-content: center;
+  }
+  .bar-left, .bar-right { width: 100%; justify-content: space-between; }
+  .bar-right { flex-wrap: wrap; gap: .25rem .375rem; }
+  .brand { display: none; }
+  .switch button { padding: .3125rem .5rem; font-size: .75rem; }
+  .switch button.on { font-size: 1rem; }
+  #title {
+    flex: 1; min-width: 0; font-size: clamp(.75rem, .7rem + .25vw, .875rem);
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .status { display: none; }
+  .sync-info { max-width: 7rem; font-size: .5625rem; }
+  .ver { font-size: .5rem; padding: 0 3px; }
+  #btn-sync { padding: .25rem .375rem; font-size: .625rem; }
+  .searchbox { flex: 1; min-width: 7rem; }
+  .searchbox input { width: 100%; font-size: .75rem; }
+  .results { width: 100%; right: auto; left: 0; }
+  main { max-width: 100vw; overflow-x: hidden; }
+  /* 左右只留 3px：4 个 8px 色点 + 3px 间距刚好排得进一行（月格这轮换的是信息结构） */
+  .cell { min-height: 5.5rem; padding: .3125rem .1875rem; }
+  /* 今天格子多出 2px 边框，把内边距扣回来，色点才不会掉到第二行 */
+  .cell.today { padding: calc(.3125rem + 3px) calc(.1875rem + 2px); }
+  .grid { gap: 5px 4px; }
+  /* 手机格子只有 40 多像素宽：地点和类型色条让位给标题，字号保持原样不动 */
+  .ev { font-size: .71875rem; gap: 0; padding-left: .25rem; }
+  .ev .loc { display: none; }
+  .ev .t { min-width: 0; }
+  .ev-more { font-size: .5625rem; padding-left: .25rem; white-space: nowrap; }
+  .ev time { display: none; }
+  .dnum { font-size: .75rem; }
+  .today-mark { font-size: .5625rem; white-space: nowrap; }
+  /* 手机格窄：周数徽章收紧一点，否则会和「今天」一起被挤成两行 */
+  .wnum { font-size: .5rem; padding: 0 3px; line-height: 1.35; }
+  .cell-flags { gap: 2px; flex-wrap: nowrap; }
+
+  /* 手机保留周时间轴，但取消固定宽度；36px 行高由 JS 同步，避免刻度与事件错位 */
+  main[data-view="week"] { padding-bottom: calc(3.5rem + env(safe-area-inset-bottom)); }
+  main[data-view="week"] > .goals { display: none; }
+  /* 悬1：7 列硬塞进 400px 时每列只 52px、块内可用 50px，「10:00–11:35」要 60px 才能放，
+     所以时间一直被藏。改成固定列宽 + 横向滑动，一屏 3 天（--mdayw 由 JS syncDayColWidth() 按屏宽算，
+     400px 下 121px/列、可用 110px，时间和 6 字标题同时放得下）。
+     纵向仍交给页面滚动：overflow-y:hidden + 高度 auto 不会裁掉任何东西（内容高度由列自身撑开）。
+     ⚠️ 全部限定在 main[data-view="week"]：日视图也用 .week-grid（行内写 54px 1fr），
+     不加限定会被 width:max-content 挤成 55px、块只剩 7px。 */
+  main[data-view="week"] .week-scroll { overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; }
+  main[data-view="week"] .week-grid {
+    min-width: 0; width: max-content;
+    grid-template-columns: 2.25rem repeat(7, var(--mdayw, 121px));
+  }
+  /* 时间列与「整日」角随横向滑动钉在左边，滑到周五也看得见几点 */
+  main[data-view="week"] .week-grid > .wcol-head:first-child,
+  main[data-view="week"] .week-grid > .allday-corner,
+  main[data-view="week"] .week-grid > .time-col {
+    position: sticky; left: 0; z-index: 7;
+  }
+  main[data-view="week"] .week-grid > .wcol-head:first-child { z-index: 8; }
+  /* 钉住后事件块会从下面滑过，底色必须不透明，否则时间数字和色块叠在一起 */
+  /* ⚠ 这里必须写 background-color，不能用 background 简写——
+     简写会把 .time-col 上的每小时短刻线（background-image）一起清掉，
+     手机周视图就看不见「小时间标志」了（2026-10-27 他指出的就是这个）。 */
+  main[data-view="week"] .time-col { background-color: var(--bg); }
+  /* D4：周几要一眼读到——32px 高、13pt 加粗，上下两行排 */
+  .wcol-head {
+    padding: 0 .0625rem; min-height: 32px; height: 32px;
+    flex-direction: column; align-items: center; justify-content: center; gap: 0;
+  }
+  .wcol-head .wd { font-size: 13pt; font-weight: 700; letter-spacing: 0; line-height: 1.05; }
+  .wcol-head b { font-size: .6875rem; font-weight: 700; line-height: 1.1; }
+  .wcol-head.today .wd, .wcol-head.today b { color: #C2410C; }
+  /* D3：相邻两列用 1px 分隔线，7 列边界清楚 */
+  .day-col { border-left: 1px solid #E2DED6; }
+  .time-col { border-right: 1px solid #E2DED6; }
+  /* 手机上时间轴窄，字号不能抬，只能靠字重和颜色补：600 + --ev-sub，和电脑端同一套语言 */
+  .time-col div {
+    padding-right: .625rem; font-size: clamp(.5rem, .46rem + .2vw, .625rem);
+    font-weight: 600; color: var(--ev-sub);
+  }
+  .time-col div.hot { font-size: .625rem; }
+  .allday-corner { padding: .25rem .125rem; font-size: .5625rem; }
+  .allday-cell { padding: .125rem; }
+  .aday { margin: 0; padding-left: .125rem; font-size: .5625rem; }
+  .evblock { padding: .125rem; border-radius: .1875rem; font-size: clamp(.5rem, .46rem + .2vw, .625rem); }
+  .evblock .et { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 7.3px 下数字「1」细到看不见（用户会以为时间被截断），提到 9px 起 */
+  .evblock .eh, .evblock .eh .tt { font-size: clamp(.5625rem, .5rem + .25vw, .6875rem); }
+  /* 悬1：列宽够了（121px），时间回到块内，排在标题上面一行。
+     块加高到 36px/小时后，1 小时的块刚好是「时间一行 + 标题一行」。
+     .tight（30 分钟块 = 22px）只放得下一行，仍旧只留标题——那是高度限制，不是宽度限制。 */
+  main[data-view="week"] .evblock {
+    display: flex; flex-direction: column; align-items: stretch;
+    padding: .125rem .1875rem;
+  }
+  main[data-view="week"] .evblock .eh { order: -1; flex: none; }
+  /* 悬2：标题从 8.16px 提到 11px，并放开到两行——原来 855 行的 nowrap+省略号是给 50px 窄列写的，
+     121px 下继续 nowrap 等于白白浪费第二行 */
+  main[data-view="week"] .evblock .et {
+    font-size: .6875rem; white-space: normal; text-overflow: clip;
+    -webkit-line-clamp: 2;
+  }
+  /* 34–53px 的块：时间占了 12px，只剩一行标题的高度，多出来的第二行会被下边界切一半 */
+  main[data-view="week"] .evblock.short .et { -webkit-line-clamp: 1; }
+  /* 22px 的半小时块（.tight）：高度只够一行，改成「时间 + 标题」横排，
+     时间钉在最左（.tt 是 flex:none 不会被截），标题截断可以接受——点开卡片看全。
+     不这么改的话半小时块仍然看不见时间，等于悬1 只解决了一半。 */
+  main[data-view="week"] .evblock.tight {
+    flex-direction: row; align-items: center; gap: .25rem;
+    padding: 0 .125rem;
+  }
+  main[data-view="week"] .evblock.tight .eh { display: flex; }
+  main[data-view="week"] .evblock.tight .et { -webkit-line-clamp: 1; }
+  .evblock .tloc { display: none; }
+  .evblock .et-loc { display: inline; font-size: .5625rem; }
+  .evblock.tight { display: block; padding: .0625rem .125rem; }
+  .evblock.tight .eh { display: none; }
+  body[data-view="week"] #btn-today {
+    position: fixed; z-index: 60;
+    right: calc(.75rem + env(safe-area-inset-right));
+    bottom: calc(.75rem + env(safe-area-inset-bottom));
+    padding: .5rem .875rem; background: var(--text); color: var(--bg);
+    border-color: var(--text); box-shadow: 0 .25rem 1rem rgba(0, 0, 0, .18);
+  }
+  .mobile-week-tools { display: block; padding: 0 .75rem; }
+  .mobile-week-tools:empty { display: none; }
+  .m-goals { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .m-goals summary {
+    min-height: 2.75rem; display: flex; align-items: center; gap: .3125rem;
+    padding: .4375rem .125rem; font-size: .8125rem; font-weight: 700; cursor: pointer;
+  }
+  .m-goals summary span { color: var(--muted); font-weight: 400; }
+  .m-goal-list { padding: 0 .125rem .5rem; }
+  .m-goal { padding: .25rem 0; font-size: .8125rem; }
+  .m-goal.done { color: var(--muted); }
+
+  /* 日视图辅助信息为默认收起的抽屉，双列紧凑排列 */
+  .day-wrap { grid-template-columns: 1fr; }
+  .day-main { border-right: 0; }
+  .day-side {
+    border-top: 1px solid var(--line-soft); padding: .625rem;
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem;
+  }
+  .day-side .side-sec { min-width: 0; margin-bottom: 0; }
+  .day-side .side-sec:first-child { grid-column: 1 / -1; }
+  .side-drawer > summary { margin-bottom: .375rem; padding-bottom: .3125rem; font-size: .75rem; }
+  .goal-link .txt { font-size: .78125rem; }
+  .note-area { min-height: 11rem; }
+}
+
+/* 便签：平板两栏，左侧分区横排；手机单栏列表/编辑切换 */
+@media (max-width: 899px) {
+  .notes-page {
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .notes-filters {
+    grid-column: 1 / -1; grid-row: 1;
+    flex-direction: row; align-items: center; gap: .25rem;
+    padding: .375rem .5rem; border-right: 0; border-bottom: 1px solid var(--line);
+    overflow-x: auto; overflow-y: hidden;
+  }
+  .notes-brand { display: none; }
+  .note-filter { width: auto; flex: none; padding: .375rem .5rem; font-size: .75rem; }
+  .note-new { width: auto; flex: none; margin: 0 0 0 auto; padding: .375rem .625rem; font-size: .75rem; }
+  .notes-list-col { grid-column: 1; grid-row: 2; }
+  .notes-editor-col { grid-column: 2; grid-row: 2; }
+}
+
+@media (max-width: 639px) {
+  main[data-view="notes"] { overflow: hidden; }
+  .notes-page { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .notes-filters {
+    grid-column: 1; grid-row: 1;
+    flex-wrap: wrap; overflow: visible;
+  }
+  .notes-list-col { grid-column: 1; grid-row: 2; }
+  .notes-editor-col { grid-column: 1; grid-row: 1 / 3; }
+  .notes-page[data-pane="list"] .notes-editor-col { display: none; }
+  .notes-page[data-pane="editor"] .notes-filters,
+  .notes-page[data-pane="editor"] .notes-list-col { display: none; }
+  .notes-mobile-head {
+    display: flex; align-items: center; gap: .5rem;
+    min-height: 2.75rem; padding: .375rem .625rem;
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--text); font-size: .8125rem; font-weight: 700;
+  }
+  .notes-mobile-head button {
+    min-height: 2rem; padding: .25rem .5rem;
+    border: 1px solid var(--line); border-radius: .375rem;
+    color: var(--muted); font-size: .8125rem;
+  }
+  .notes-editor-head { padding: .25rem .625rem; gap: .375rem; }
+  .notes-updated { font-size: .625rem; }
+  .notes-title { margin: .5rem .875rem 0; font-size: .875rem; }
+  .notes-editor { padding: .875rem; font-size: .9375rem; }
+  .notes-editor-foot { padding: .375rem .625rem; font-size: .5625rem; }
+  .notes-search { padding: .5rem .625rem; }
+  .note-item { padding: .625rem .75rem; }
+}
+
+/* ---------------- 手机月视图：日期 + 类型色点 ---------------- */
+/* 这些节点只在 ≤720px 渲染（见 app.js 的 mobileDots / monthLegend），所以不套媒体查询 */
+.m-dots {
+  display: flex; flex-wrap: nowrap; align-items: center;
+  gap: 2px; margin-top: 4px;
+}
+/* 版一「有事标记」：一格一条 2px 短横，有事才出现。高度与原点点同高，不改变格子尺寸 */
+.m-bars {
+  display: flex; align-items: center; gap: 2px;
+  margin-top: 5px; max-width: 100%; overflow: hidden;
+}
+.m-bars i {
+  height: 2px; border-radius: 1px; background: var(--ev-bar);
+  opacity: .8;
+  /* 可以缩、不许溢出：格子窄（尤其「今天」那格有 4px 描边占位）时宁可短一点，也不能把 +N 挤出去 */
+  flex: 0 1 auto; min-width: 3px; max-width: 8px;
+}
+.m-bars-more {
+  font-size: 8px; line-height: 1; color: var(--ev-sub);
+  font-weight: 700; flex: none;
+}
+/* 版二「条数」用这句（切换时把上面 mobileDots 的返回值换成 .m-count 那个版本） */
+.m-count {
+  display: block; margin-top: 2px; font-size: 9px; line-height: 1.2;
+  color: var(--ev-sub); font-weight: 700; font-variant-numeric: tabular-nums;
+}
+
+/* 直径 7px / 间距 2px：4 个点 = 34px、「3 点 + +N」= 37px，
+   而 400px 屏的月格可用宽只有 40.5px。按文档的 8px/3px 会溢出（4 点 41px、3 点+N 49px）。 */
+.m-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.m-dot[data-type=high]   { background: var(--ev-bar-high); }
+.m-dot[data-type=allday] { background: var(--ev-bar-allday); }
+.m-dot[data-type=todo]   { background: var(--ev-bar-todo); }
+.m-dot[data-type=normal] { background: var(--ev-bar); }
+.m-dot-more {
+  margin-left: 2px; font-size: 9px; font-weight: 700; color: var(--ev-sub);
+  line-height: 1; flex: none;
+}
+/* 图例常驻：一行 9px，进页面就知道四个点是啥，不用点开 */
+.m-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+  padding: 5px 12px 4px; font-size: 9px; color: var(--muted);
+  border-bottom: 1px solid var(--line-soft);
+}
+.m-legend-item { display: inline-flex; align-items: center; gap: 3px; }
+/* 360px 及更窄：再收 1px 间距，保证 4 点 + +N 都不换行 */
+@media (max-width: 380px) {
+  .m-dots { gap: 1px; }
+  .m-dot-more { margin-left: 1px; }
+}
+
+/* 浮层里的当天待办（手机月格点开时带出来） */
+.pop-todos { border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 6px; }
+.pop-todo {
+  display: flex; gap: 7px; align-items: baseline;
+  padding: 4px 2px; font-size: 12.5px; line-height: 1.45; color: var(--text);
+}
+.pop-todo .pt { color: var(--ev-bar-todo); font-weight: 700; flex: none; }
+.pop-todo.done { color: var(--muted); text-decoration: line-through; }
+.pop-todo.done .pt { color: var(--muted); }
+.pop-todo.high { font-weight: 700; }
+
+/* 手机上 blur 太贵，降到 3px：8% 的强度本来就看不出模糊直径，省一半合成开销。
+   2026-10-29 他定的做法一：照片**只托住「有内容的那一块」**，那一块之外的空白回到纸白。
+   所以手机端关掉全屏层，改挂到各视图的内容容器上（月 .grid / 周 .week-grid / 日 .day-wrap / 便签 .notes-page）；
+   桌面端不动，仍是全屏那一层。 */
+@media (max-width: 720px) {
+  body::before { display: none; }
+
+  .grid, .week-grid, .day-wrap, .notes-page { position: relative; }
+  .grid::before, .week-grid::before, .day-wrap::before, .notes-page::before {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background-position: center; background-repeat: no-repeat; background-size: cover;
+    filter: blur(0.8px) saturate(1);
+    opacity: var(--bgphoto);
+    border-radius: 10px;
+  }
+  body[data-view="month"] .grid::before { background-image: url("bg/bg-month.jpg"); }
+  body[data-view="week"] .week-grid::before { background-image: url("bg/bg-week.jpg"); }
+  body[data-view="day"] .day-wrap::before { background-image: url("bg/bg-day.jpg"); }
+}
+
+/* 右上角折角会盖住周数徽章，让徽章往里让 20px（2026-10-29） */
+/* 桌面才需要避让右上角折角 */
+@media (min-width: 721px) { .cell-head .wnum { margin-right: 20px; } }
+
+/* 手机月格只有 48px：「40周」这种标签纯占地方，他 2026-10-29 决定去掉（桌面保留） */
+@media (max-width: 720px) {
+  .wnum { display: none !important; }
+}

@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+备份/
+certs/
+auth.json
+auth-tokens.json
+notes-config.json
+.app-profile/
